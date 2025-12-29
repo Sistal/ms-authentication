@@ -32,7 +32,11 @@ func NewUserUseCase(userRepo ports.UserRepository, authService ports.AuthService
 // RegisterUser creates a new user account
 func (uc *UserUseCase) RegisterUser(ctx context.Context, email, password, name string) (*entities.User, error) {
 	// Check if user already exists
-	existingUser, _ := uc.userRepo.GetByEmail(ctx, email)
+	existingUser, err := uc.userRepo.GetByEmail(ctx, email)
+	if err != nil {
+		// Return database error if it's not a "not found" case
+		return nil, err
+	}
 	if existingUser != nil {
 		return nil, ErrUserAlreadyExists
 	}
@@ -65,6 +69,10 @@ func (uc *UserUseCase) Login(ctx context.Context, email, password string) (strin
 	// Get user by email
 	user, err := uc.userRepo.GetByEmail(ctx, email)
 	if err != nil {
+		// Return database error for proper error handling
+		return "", nil, err
+	}
+	if user == nil {
 		return "", nil, ErrInvalidCredentials
 	}
 
