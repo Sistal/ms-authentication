@@ -95,7 +95,13 @@ func (h *UserHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userUseCase.GetUserByID(c.Request.Context(), userID.(string))
+	userIDStr, ok := userID.(string)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, ErrorResponse{Error: "invalid user ID format"})
+		return
+	}
+
+	user, err := h.userUseCase.GetUserByID(c.Request.Context(), userIDStr)
 	if err != nil {
 		c.JSON(http.StatusNotFound, ErrorResponse{Error: err.Error()})
 		return
