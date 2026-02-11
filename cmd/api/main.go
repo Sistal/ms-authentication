@@ -7,10 +7,38 @@ import (
 	"log"
 
 	"github.com/Sistal/ms-authentication/config"
+	_ "github.com/Sistal/ms-authentication/docs"
 	"github.com/Sistal/ms-authentication/internal/application/usecases"
-	"github.com/Sistal/ms-authentication/internal/infrastructure/adapters/database"
-	"github.com/Sistal/ms-authentication/internal/infrastructure/adapters/http"
+	"github.com/Sistal/ms-authentication/internal/infrastructure/auth"
+	"github.com/Sistal/ms-authentication/internal/infrastructure/database"
+	"github.com/Sistal/ms-authentication/internal/infrastructure/http/handlers"
+	"github.com/Sistal/ms-authentication/internal/infrastructure/http/routes"
+	_ "github.com/lib/pq"
 )
+
+// @title ms-authentication API
+// @version 1.0
+// @description Microservicio de autenticación con JWT para el sistema Sistal
+// @description
+// @description Este servicio proporciona endpoints para:
+// @description - Registro de usuarios
+// @description - Login con JWT
+// @description - Validación de tokens
+// @description - Gestión de autenticación y autorización
+//
+// @contact.name Sistal API Support
+// @contact.email support@sistal.com
+//
+// @license.name MIT
+// @license.url https://opensource.org/licenses/MIT
+//
+// @host localhost:8080
+// @BasePath /
+//
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Token JWT en formato: Bearer {token}
 
 func main() {
 	// Load configuration
@@ -39,23 +67,23 @@ func main() {
 	log.Println("Successfully connected to database")
 
 	// Initialize database schema
-	userRepo := database.NewPostgresUserRepository(db)
-	if err := userRepo.InitSchema(context.Background()); err != nil {
+	usuarioRepo := database.NewPostgresUsuarioRepository(db)
+	if err := usuarioRepo.InitSchema(context.Background()); err != nil {
 		log.Fatalf("Failed to initialize database schema: %v", err)
 	}
 	log.Println("Database schema initialized")
 
 	// Initialize services
-	authService := database.NewJWTAuthService(cfg.JWT.SecretKey)
+	authService := auth.NewJWTAuthService(cfg.JWT.SecretKey)
 
 	// Initialize use cases
-	userUseCase := usecases.NewUserUseCase(userRepo, authService)
+	authUseCase := usecases.NewAuthUseCase(usuarioRepo, authService)
 
 	// Initialize HTTP handlers
-	userHandler := http.NewUserHandler(userUseCase)
+	authHandler := handlers.NewAuthHandler(authUseCase)
 
 	// Setup router
-	router := http.SetupRouter(userHandler, authService)
+	router := routes.SetupRouter(authHandler, authService, cfg.CORS.AllowedOrigins)
 
 	// Start server
 	serverAddr := fmt.Sprintf(":%s", cfg.Server.Port)

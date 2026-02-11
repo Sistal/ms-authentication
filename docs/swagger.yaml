@@ -1,0 +1,484 @@
+basePath: /
+definitions:
+  entities.APIResponse:
+    properties:
+      data: {}
+      error:
+        $ref: '#/definitions/entities.ErrorDetail'
+      message:
+        type: string
+      meta: {}
+      success:
+        type: boolean
+      validation_errors:
+        items:
+          $ref: '#/definitions/entities.ValidationError'
+        type: array
+    type: object
+  entities.ChangePasswordDTO:
+    properties:
+      password_actual:
+        type: string
+      password_confirmacion:
+        type: string
+      password_nueva:
+        minLength: 8
+        type: string
+    required:
+    - password_actual
+    - password_confirmacion
+    - password_nueva
+    type: object
+  entities.CreateUsuarioDTO:
+    properties:
+      id_estado_usuario:
+        type: integer
+      id_rol:
+        type: integer
+      nombre_completo:
+        type: string
+      nombre_usuario:
+        type: string
+      password:
+        minLength: 8
+        type: string
+      rut:
+        type: string
+    required:
+    - id_rol
+    - nombre_completo
+    - nombre_usuario
+    - password
+    - rut
+    type: object
+  entities.ErrorDetail:
+    properties:
+      code:
+        type: string
+      details:
+        type: string
+    type: object
+  entities.EstadoDTO:
+    properties:
+      id_estado:
+        type: integer
+      nombre_estado:
+        type: string
+      tabla_estado:
+        type: string
+    type: object
+  entities.LoginDTO:
+    properties:
+      nombre_usuario:
+        type: string
+      password:
+        type: string
+    required:
+    - nombre_usuario
+    - password
+    type: object
+  entities.RefreshTokenDTO:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  entities.RolDTO:
+    properties:
+      descripcion:
+        type: string
+      id_rol:
+        type: integer
+      nombre_rol:
+        type: string
+    type: object
+  entities.UpdateUsuarioDTO:
+    properties:
+      id_estado_usuario:
+        type: integer
+      id_rol:
+        type: integer
+      nombre_completo:
+        type: string
+    type: object
+  entities.ValidationError:
+    properties:
+      field:
+        type: string
+      message:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@sistal.com
+    name: Sistal API Support
+  description: |-
+    Microservicio de autenticación con JWT para el sistema Sistal
+
+    Este servicio proporciona endpoints para:
+    - Registro de usuarios
+    - Login con JWT
+    - Validación de tokens
+    - Gestión de autenticación y autorización
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  title: ms-authentication API
+  version: "1.0"
+paths:
+  /api/v1/auth/change-password:
+    put:
+      consumes:
+      - application/json
+      description: Permite al usuario cambiar su contraseña
+      parameters:
+      - description: Datos de cambio de contraseña
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.ChangePasswordDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Cambiar contraseña
+      tags:
+      - Authentication
+  /api/v1/auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Autentica un usuario y retorna un token JWT
+      parameters:
+      - description: Credenciales de login
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.LoginDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      summary: Iniciar sesión
+      tags:
+      - Authentication
+  /api/v1/auth/logout:
+    post:
+      description: Invalida el token actual (implementación básica)
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Cerrar sesión
+      tags:
+      - Authentication
+  /api/v1/auth/me:
+    get:
+      description: Retorna información completa del usuario autenticado
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener perfil de usuario actual
+      tags:
+      - Authentication
+  /api/v1/auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Genera un nuevo token JWT usando un refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.RefreshTokenDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      summary: Renovar token
+      tags:
+      - Authentication
+  /api/v1/auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario en el sistema
+      parameters:
+      - description: Datos de registro
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.CreateUsuarioDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      summary: Registrar nuevo usuario (público)
+      tags:
+      - Authentication
+  /api/v1/auth/roles:
+    get:
+      description: Retorna la lista de roles disponibles en el sistema
+      parameters:
+      - default: true
+        description: Solo roles activos
+        in: query
+        name: activos_solo
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar roles disponibles
+      tags:
+      - Authentication
+  /api/v1/auth/users:
+    get:
+      description: Lista todos los usuarios del sistema con filtros y paginación
+      parameters:
+      - default: 1
+        description: Página
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Límite por página
+        in: query
+        name: limit
+        type: integer
+      - description: Filtrar por rol
+        in: query
+        name: id_rol
+        type: integer
+      - description: Filtrar por estado
+        in: query
+        name: id_estado
+        type: integer
+      - description: 'Buscar en nombre_usuario, nombre_completo, rut'
+        in: query
+        name: search
+        type: string
+      - default: fecha_creacion
+        description: Ordenar por campo
+        in: query
+        name: sort_by
+        type: string
+      - default: desc
+        description: Orden (asc|desc)
+        in: query
+        name: order
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Listar usuarios (Admin)
+      tags:
+      - Admin
+    post:
+      consumes:
+      - application/json
+      description: Crea un nuevo usuario en el sistema (requiere permisos de Admin)
+      parameters:
+      - description: Datos del usuario
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.CreateUsuarioDTO'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Crear usuario (Admin)
+      tags:
+      - Admin
+  /api/v1/auth/users/{id_usuario}:
+    get:
+      description: Obtiene información detallada de un usuario específico
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id_usuario
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Obtener usuario por ID (Admin)
+      tags:
+      - Admin
+    put:
+      consumes:
+      - application/json
+      description: Actualiza información de un usuario existente
+      parameters:
+      - description: ID del usuario
+        in: path
+        name: id_usuario
+        required: true
+        type: integer
+      - description: Datos a actualizar
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/entities.UpdateUsuarioDTO'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Actualizar usuario (Admin)
+      tags:
+      - Admin
+  /api/v1/auth/validate:
+    get:
+      description: Valida un token JWT y retorna información del usuario
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/entities.APIResponse'
+      security:
+      - BearerAuth: []
+      summary: Validar token JWT
+      tags:
+      - Authentication
+  /health:
+    get:
+      description: Verifica el estado del servicio
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Health Check
+      tags:
+      - Health
+securityDefinitions:
+  BearerAuth:
+    description: 'Token JWT en formato: Bearer {token}'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
