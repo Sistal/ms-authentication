@@ -10,6 +10,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
+	CORS     CORSConfig
 }
 
 // ServerConfig holds server configuration
@@ -32,24 +33,32 @@ type JWTConfig struct {
 	SecretKey string
 }
 
+// CORSConfig holds CORS configuration
+type CORSConfig struct {
+	AllowedOrigins string
+}
+
 // Load loads configuration from environment variables
 func Load() *Config {
 	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 
 	return &Config{
 		Server: ServerConfig{
-			Port: getEnv("SERVER_PORT", "8080"),
+			Port: getEnv("SERVER_PORT", "8081"),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "localhost"),
+			Host:     getEnv("DB_HOST", "db.fbcdvhoectqyofnezwfe.supabase.co"),
 			Port:     dbPort,
 			User:     getEnv("DB_USER", "postgres"),
-			Password: getEnv("DB_PASSWORD", "postgres"),
-			DBName:   getEnv("DB_NAME", "authentication"),
+			Password: getEnv("DB_PASSWORD", "QqODFGGDCAKyD5h6"),
+			DBName:   getEnv("DB_NAME", "postgres"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		JWT: JWTConfig{
-			SecretKey: getEnv("JWT_SECRET", "your-secret-key-change-in-production"),
+			SecretKey: getEnv("JWT_SECRET", "a9F3kL7QxR2ZP8mVwD6H4JcN5EBySUTG"),
+		},
+		CORS: CORSConfig{
+			AllowedOrigins: getEnv("ALLOWED_ORIGINS", "http://localhost:5173,http://localhost:5174,http://localhost:8080,http://localhost:8082,http://localhost:8083"),
 		},
 	}
 }
