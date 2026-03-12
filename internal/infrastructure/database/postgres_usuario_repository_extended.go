@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -12,6 +13,10 @@ import (
 
 // UpdateUsuario actualiza un usuario existente
 func (r *PostgresUsuarioRepository) UpdateUsuario(ctx context.Context, id int, usuario *entities.Usuario) error {
+	slog.Debug("[PostgresUsuarioRepository.UpdateUsuario] Actualizando usuario",
+		slog.Int("id_usuario", id),
+	)
+
 	query := `
 		UPDATE "Usuario"
 		SET nombre_completo = $1,
@@ -32,6 +37,10 @@ func (r *PostgresUsuarioRepository) UpdateUsuario(ctx context.Context, id int, u
 	)
 
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.UpdateUsuario] Error al actualizar usuario",
+			slog.Int("id_usuario", id),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to update usuario: %w", err)
 	}
 
@@ -41,14 +50,24 @@ func (r *PostgresUsuarioRepository) UpdateUsuario(ctx context.Context, id int, u
 	}
 
 	if rows == 0 {
+		slog.Warn("[PostgresUsuarioRepository.UpdateUsuario] No se encontró usuario para actualizar",
+			slog.Int("id_usuario", id),
+		)
 		return fmt.Errorf("usuario not found")
 	}
 
+	slog.Debug("[PostgresUsuarioRepository.UpdateUsuario] Usuario actualizado exitosamente",
+		slog.Int("id_usuario", id),
+	)
 	return nil
 }
 
 // UpdateCredencial actualiza la contraseña de un usuario
 func (r *PostgresUsuarioRepository) UpdateCredencial(ctx context.Context, idUsuario int, passwordHash string) error {
+	slog.Debug("[PostgresUsuarioRepository.UpdateCredencial] Actualizando credencial",
+		slog.Int("id_usuario", idUsuario),
+	)
+
 	query := `
 		UPDATE "Credencial"
 		SET password_hash = $1
@@ -57,6 +76,10 @@ func (r *PostgresUsuarioRepository) UpdateCredencial(ctx context.Context, idUsua
 
 	result, err := r.db.ExecContext(ctx, query, passwordHash, idUsuario)
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.UpdateCredencial] Error al actualizar credencial",
+			slog.Int("id_usuario", idUsuario),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to update credencial: %w", err)
 	}
 
@@ -66,14 +89,25 @@ func (r *PostgresUsuarioRepository) UpdateCredencial(ctx context.Context, idUsua
 	}
 
 	if rows == 0 {
+		slog.Warn("[PostgresUsuarioRepository.UpdateCredencial] Credencial no encontrada para actualizar",
+			slog.Int("id_usuario", idUsuario),
+		)
 		return fmt.Errorf("credencial not found")
 	}
 
+	slog.Debug("[PostgresUsuarioRepository.UpdateCredencial] Credencial actualizada exitosamente",
+		slog.Int("id_usuario", idUsuario),
+	)
 	return nil
 }
 
 // ListUsuarios lista usuarios con filtros y paginación
 func (r *PostgresUsuarioRepository) ListUsuarios(ctx context.Context, filters entities.ListUsuariosFilters) ([]*entities.Usuario, int, error) {
+	slog.Debug("[PostgresUsuarioRepository.ListUsuarios] Iniciando consulta de usuarios",
+		slog.Int("page", filters.Page),
+		slog.Int("limit", filters.Limit),
+	)
+
 	// Construir query base
 	baseQuery := `FROM "Usuario" WHERE 1=1`
 	args := []interface{}{}
@@ -104,6 +138,9 @@ func (r *PostgresUsuarioRepository) ListUsuarios(ctx context.Context, filters en
 	var total int
 	err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.ListUsuarios] Error al contar usuarios",
+			slog.String("error", err.Error()),
+		)
 		return nil, 0, fmt.Errorf("failed to count usuarios: %w", err)
 	}
 
@@ -135,6 +172,9 @@ func (r *PostgresUsuarioRepository) ListUsuarios(ctx context.Context, filters en
 
 	rows, err := r.db.QueryContext(ctx, selectQuery, args...)
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.ListUsuarios] Error al ejecutar selectQuery",
+			slog.String("error", err.Error()),
+		)
 		return nil, 0, fmt.Errorf("failed to query usuarios: %w", err)
 	}
 	defer rows.Close()
@@ -153,16 +193,27 @@ func (r *PostgresUsuarioRepository) ListUsuarios(ctx context.Context, filters en
 			&usuario.FechaModificacion,
 		)
 		if err != nil {
+			slog.Error("[PostgresUsuarioRepository.ListUsuarios] Error al escanear usuario",
+				slog.String("error", err.Error()),
+			)
 			return nil, 0, fmt.Errorf("failed to scan usuario: %w", err)
 		}
 		usuarios = append(usuarios, usuario)
 	}
 
+	slog.Debug("[PostgresUsuarioRepository.ListUsuarios] Consulta finalizada",
+		slog.Int("total_encontrados", len(usuarios)),
+		slog.Int("total_records", total),
+	)
 	return usuarios, total, nil
 }
 
 // GetRolByID obtiene un rol por su ID
 func (r *PostgresUsuarioRepository) GetRolByID(ctx context.Context, idRol int) (*entities.Rol, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetRolByID] Consultando rol",
+		slog.Int("id_rol", idRol),
+	)
+
 	query := `
 		SELECT id_rol, nombre_rol, descripcion, activo
 		FROM "Roles"
@@ -178,9 +229,16 @@ func (r *PostgresUsuarioRepository) GetRolByID(ctx context.Context, idRol int) (
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Warn("[PostgresUsuarioRepository.GetRolByID] Rol no encontrado",
+			slog.Int("id_rol", idRol),
+		)
 		return nil, fmt.Errorf("rol not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetRolByID] Error al consultar rol",
+			slog.Int("id_rol", idRol),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get rol: %w", err)
 	}
 
@@ -189,6 +247,10 @@ func (r *PostgresUsuarioRepository) GetRolByID(ctx context.Context, idRol int) (
 
 // GetEstadoByID obtiene un estado por su ID
 func (r *PostgresUsuarioRepository) GetEstadoByID(ctx context.Context, idEstado int) (*entities.Estado, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetEstadoByID] Consultando estado",
+		slog.Int("id_estado", idEstado),
+	)
+
 	query := `
 		SELECT id_estado, nombre_estado, tabla_estado
 		FROM "Estado"
@@ -203,9 +265,16 @@ func (r *PostgresUsuarioRepository) GetEstadoByID(ctx context.Context, idEstado 
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Warn("[PostgresUsuarioRepository.GetEstadoByID] Estado no encontrado",
+			slog.Int("id_estado", idEstado),
+		)
 		return nil, fmt.Errorf("estado not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetEstadoByID] Error al consultar estado",
+			slog.Int("id_estado", idEstado),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get estado: %w", err)
 	}
 
@@ -214,6 +283,10 @@ func (r *PostgresUsuarioRepository) GetEstadoByID(ctx context.Context, idEstado 
 
 // ListRoles lista todos los roles
 func (r *PostgresUsuarioRepository) ListRoles(ctx context.Context, activosOnly bool) ([]*entities.Rol, error) {
+	slog.Debug("[PostgresUsuarioRepository.ListRoles] Listando roles",
+		slog.Bool("activos_only", activosOnly),
+	)
+
 	query := `
 		SELECT id_rol, nombre_rol, descripcion, activo
 		FROM "Roles"
@@ -227,6 +300,9 @@ func (r *PostgresUsuarioRepository) ListRoles(ctx context.Context, activosOnly b
 
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.ListRoles] Error al consultar roles",
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to query roles: %w", err)
 	}
 	defer rows.Close()
@@ -241,16 +317,26 @@ func (r *PostgresUsuarioRepository) ListRoles(ctx context.Context, activosOnly b
 			&rol.Activo,
 		)
 		if err != nil {
+			slog.Error("[PostgresUsuarioRepository.ListRoles] Error al escanear rol",
+				slog.String("error", err.Error()),
+			)
 			return nil, fmt.Errorf("failed to scan rol: %w", err)
 		}
 		roles = append(roles, rol)
 	}
 
+	slog.Debug("[PostgresUsuarioRepository.ListRoles] Listado de roles finalizado",
+		slog.Int("total_roles", len(roles)),
+	)
 	return roles, nil
 }
 
 // CreateRefreshToken crea un refresh token
 func (r *PostgresUsuarioRepository) CreateRefreshToken(ctx context.Context, refreshToken *entities.RefreshToken) error {
+	slog.Debug("[PostgresUsuarioRepository.CreateRefreshToken] Creando refresh token",
+		slog.Int("id_usuario", refreshToken.IDUsuario),
+	)
+
 	query := `
 		INSERT INTO "RefreshTokens" (id_usuario, token, expires_at, created_at)
 		VALUES ($1, $2, $3, $4)
@@ -267,14 +353,23 @@ func (r *PostgresUsuarioRepository) CreateRefreshToken(ctx context.Context, refr
 	).Scan(&refreshToken.ID)
 
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.CreateRefreshToken] Error al crear refresh token",
+			slog.Int("id_usuario", refreshToken.IDUsuario),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to create refresh token: %w", err)
 	}
 
+	slog.Debug("[PostgresUsuarioRepository.CreateRefreshToken] Refresh token creado exitosamente",
+		slog.Int("id_token", refreshToken.ID),
+	)
 	return nil
 }
 
 // GetRefreshToken obtiene un refresh token por su valor
 func (r *PostgresUsuarioRepository) GetRefreshToken(ctx context.Context, token string) (*entities.RefreshToken, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetRefreshToken] Consultando refresh token")
+
 	query := `
 		SELECT id, id_usuario, token, expires_at, created_at
 		FROM "RefreshTokens"
@@ -291,12 +386,20 @@ func (r *PostgresUsuarioRepository) GetRefreshToken(ctx context.Context, token s
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Warn("[PostgresUsuarioRepository.GetRefreshToken] Refresh token no encontrado")
 		return nil, fmt.Errorf("refresh token not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetRefreshToken] Error al consultar refresh token",
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get refresh token: %w", err)
 	}
 
+	slog.Debug("[PostgresUsuarioRepository.GetRefreshToken] Refresh token encontrado",
+		slog.Int("id_token", refreshToken.ID),
+		slog.Int("id_usuario", refreshToken.IDUsuario),
+	)
 	return refreshToken, nil
 }
 

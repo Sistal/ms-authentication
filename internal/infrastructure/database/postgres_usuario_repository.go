@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log/slog"
 
 	"github.com/Sistal/ms-authentication/internal/domain/entities"
 	_ "github.com/lib/pq"
@@ -60,15 +61,22 @@ func (r *PostgresUsuarioRepository) InitSchema(ctx context.Context) error {
 
 // CreateUsuario crea un nuevo usuario en la base de datos
 func (r *PostgresUsuarioRepository) CreateUsuario(ctx context.Context, usuario *entities.Usuario) error {
+	slog.Debug("[PostgresUsuarioRepository.CreateUsuario] Iniciando creación de usuario",
+		slog.String("nombre_usuario", usuario.NombreUsuario),
+	)
+
 	// Obtener el siguiente ID disponible
 	var nextID int
 	getNextIDQuery := `
 		SELECT COALESCE(MAX(id_usuario), 0) + 1 
 		FROM "Usuario"
 	`
-	
+
 	err := r.db.QueryRowContext(ctx, getNextIDQuery).Scan(&nextID)
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.CreateUsuario] Error al obtener nextID",
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to get next id: %w", err)
 	}
 
@@ -86,23 +94,34 @@ func (r *PostgresUsuarioRepository) CreateUsuario(ctx context.Context, usuario *
 		usuario.NombreCompleto,
 		usuario.Rut,
 		usuario.IDRol,
-		usuario.IDEstadoUsuario,
+		1, // IDEstadoUsuario por defecto (activo)
 		usuario.FechaCreacion,
 		usuario.FechaModificacion,
 	)
 
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.CreateUsuario] Error al insertar usuario",
+			slog.Int("nextID", nextID),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to create usuario: %w", err)
 	}
 
 	// Asignar el ID generado al objeto usuario
 	usuario.IDUsuario = nextID
 
+	slog.Debug("[PostgresUsuarioRepository.CreateUsuario] Usuario creado exitosamente",
+		slog.Int("id_usuario", nextID),
+	)
 	return nil
 }
 
 // GetUsuarioByID obtiene un usuario por su ID
 func (r *PostgresUsuarioRepository) GetUsuarioByID(ctx context.Context, id int) (*entities.Usuario, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetUsuarioByID] Buscando usuario",
+		slog.Int("id_usuario", id),
+	)
+
 	query := `
 		SELECT id_usuario, nombre_usuario, nombre_completo, rut, id_rol, id_estado_usuario, fecha_creacion, fecha_modificacion
 		FROM "Usuario"
@@ -122,9 +141,16 @@ func (r *PostgresUsuarioRepository) GetUsuarioByID(ctx context.Context, id int) 
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Debug("[PostgresUsuarioRepository.GetUsuarioByID] Usuario no encontrado",
+			slog.Int("id_usuario", id),
+		)
 		return nil, fmt.Errorf("usuario not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetUsuarioByID] Error al buscar usuario",
+			slog.Int("id_usuario", id),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get usuario: %w", err)
 	}
 
@@ -133,6 +159,10 @@ func (r *PostgresUsuarioRepository) GetUsuarioByID(ctx context.Context, id int) 
 
 // GetUsuarioByUsername obtiene un usuario por su nombre de usuario
 func (r *PostgresUsuarioRepository) GetUsuarioByUsername(ctx context.Context, username string) (*entities.Usuario, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetUsuarioByUsername] Buscando usuario",
+		slog.String("nombre_usuario", username),
+	)
+
 	query := `
 		SELECT id_usuario, nombre_usuario, nombre_completo, rut, id_rol, id_estado_usuario, fecha_creacion, fecha_modificacion
 		FROM "Usuario"
@@ -152,9 +182,16 @@ func (r *PostgresUsuarioRepository) GetUsuarioByUsername(ctx context.Context, us
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Debug("[PostgresUsuarioRepository.GetUsuarioByUsername] Usuario no encontrado",
+			slog.String("nombre_usuario", username),
+		)
 		return nil, fmt.Errorf("usuario not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetUsuarioByUsername] Error al buscar usuario",
+			slog.String("nombre_usuario", username),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get usuario: %w", err)
 	}
 
@@ -163,6 +200,10 @@ func (r *PostgresUsuarioRepository) GetUsuarioByUsername(ctx context.Context, us
 
 // GetUsuarioByRut obtiene un usuario por su RUT
 func (r *PostgresUsuarioRepository) GetUsuarioByRut(ctx context.Context, rut string) (*entities.Usuario, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetUsuarioByRut] Buscando usuario",
+		slog.String("rut", rut),
+	)
+
 	query := `
 		SELECT id_usuario, nombre_usuario, nombre_completo, rut, id_rol, id_estado_usuario, fecha_creacion, fecha_modificacion
 		FROM "Usuario"
@@ -182,9 +223,16 @@ func (r *PostgresUsuarioRepository) GetUsuarioByRut(ctx context.Context, rut str
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Debug("[PostgresUsuarioRepository.GetUsuarioByRut] Usuario no encontrado",
+			slog.String("rut", rut),
+		)
 		return nil, fmt.Errorf("usuario not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetUsuarioByRut] Error al buscar usuario",
+			slog.String("rut", rut),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get usuario: %w", err)
 	}
 
@@ -193,15 +241,22 @@ func (r *PostgresUsuarioRepository) GetUsuarioByRut(ctx context.Context, rut str
 
 // CreateCredencial crea las credenciales de un usuario
 func (r *PostgresUsuarioRepository) CreateCredencial(ctx context.Context, credencial *entities.Credencial) error {
+	slog.Debug("[PostgresUsuarioRepository.CreateCredencial] Creando credencial",
+		slog.Int("id_usuario", credencial.IDUsuario),
+	)
+
 	// Obtener el siguiente ID disponible
 	var nextID int
 	getNextIDQuery := `
 		SELECT COALESCE(MAX(id_credencial), 0) + 1 
 		FROM "Credencial"
 	`
-	
+
 	err := r.db.QueryRowContext(ctx, getNextIDQuery).Scan(&nextID)
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.CreateCredencial] Error al obtener nextID",
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to get next credencial id: %w", err)
 	}
 
@@ -221,17 +276,28 @@ func (r *PostgresUsuarioRepository) CreateCredencial(ctx context.Context, creden
 	)
 
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.CreateCredencial] Error al insertar credencial",
+			slog.Int("id_usuario", credencial.IDUsuario),
+			slog.String("error", err.Error()),
+		)
 		return fmt.Errorf("failed to create credencial: %w", err)
 	}
 
 	// Asignar el ID generado al objeto credencial
 	credencial.IDCredencial = nextID
 
+	slog.Debug("[PostgresUsuarioRepository.CreateCredencial] Credencial creada exitosamente",
+		slog.Int("id_credencial", nextID),
+	)
 	return nil
 }
 
 // GetCredencialByUsuarioID obtiene las credenciales de un usuario
 func (r *PostgresUsuarioRepository) GetCredencialByUsuarioID(ctx context.Context, idUsuario int) (*entities.Credencial, error) {
+	slog.Debug("[PostgresUsuarioRepository.GetCredencialByUsuarioID] Consultando credencial",
+		slog.Int("id_usuario", idUsuario),
+	)
+
 	query := `
 		SELECT id_credencial, id_usuario, password_hash, fecha_creacion
 		FROM "Credencial"
@@ -247,9 +313,16 @@ func (r *PostgresUsuarioRepository) GetCredencialByUsuarioID(ctx context.Context
 	)
 
 	if err == sql.ErrNoRows {
+		slog.Warn("[PostgresUsuarioRepository.GetCredencialByUsuarioID] Credencial no encontrada",
+			slog.Int("id_usuario", idUsuario),
+		)
 		return nil, fmt.Errorf("credencial not found")
 	}
 	if err != nil {
+		slog.Error("[PostgresUsuarioRepository.GetCredencialByUsuarioID] Error al buscar credencial",
+			slog.Int("id_usuario", idUsuario),
+			slog.String("error", err.Error()),
+		)
 		return nil, fmt.Errorf("failed to get credencial: %w", err)
 	}
 

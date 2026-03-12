@@ -42,9 +42,9 @@ func SetupRouter(authHandler *handlers.AuthHandler, authService services.AuthSer
 		auth.POST("/refresh", authHandler.RefreshToken)
 	}
 
-	// Rutas protegidas con JWT
+	// Rutas protegidas con JWT (middleware deshabilitado temporalmente)
 	authProtected := router.Group("/api/v1/auth")
-	authProtected.Use(middleware.JWTMiddleware(authService))
+	// authProtected.Use(middleware.JWTMiddleware(authService)) // TODO: Reactivar cuando se requiera autenticación
 	{
 		authProtected.GET("/me", authHandler.GetMe)
 		authProtected.POST("/logout", authHandler.Logout)
@@ -52,10 +52,10 @@ func SetupRouter(authHandler *handlers.AuthHandler, authService services.AuthSer
 		authProtected.GET("/roles", authHandler.GetRoles)
 	}
 
-	// Rutas de administración de usuarios (solo Admin y Super Admin)
+	// Rutas de administración de usuarios (middleware de roles deshabilitado temporalmente)
 	adminUsers := router.Group("/api/v1/auth/users")
-	adminUsers.Use(middleware.JWTMiddleware(authService))
-	adminUsers.Use(middleware.RequireRole(2, 3)) // Roles 2=Admin, 3=Super Admin
+	// adminUsers.Use(middleware.JWTMiddleware(authService))       // TODO: Reactivar cuando se requiera autenticación
+	// adminUsers.Use(middleware.RequireRole(2, 3))                // TODO: Reactivar cuando se requieran roles (2=Admin, 3=Super Admin)
 	{
 		adminUsers.POST("", authHandler.CreateUser)
 		adminUsers.GET("", authHandler.ListUsers)

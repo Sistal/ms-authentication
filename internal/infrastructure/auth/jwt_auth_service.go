@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/Sistal/ms-authentication/internal/domain/services"
@@ -36,6 +37,13 @@ type CustomClaims struct {
 
 // GenerateToken genera un JWT para un usuario
 func (s *JWTAuthService) GenerateToken(userID int, username string, nombreCompleto string, rut string, role int, nombreRol string) (string, error) {
+	slog.Debug("[JWTAuthService.GenerateToken] Construyendo claims del JWT",
+		slog.Int("user_id", userID),
+		slog.String("username", username),
+		slog.Int("role", role),
+		slog.String("nombre_rol", nombreRol),
+	)
+
 	now := time.Now()
 	expiresAt := now.Add(s.expiresIn)
 
@@ -55,9 +63,17 @@ func (s *JWTAuthService) GenerateToken(userID int, username string, nombreComple
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signedToken, err := token.SignedString(s.secretKey)
 	if err != nil {
+		slog.Error("[JWTAuthService.GenerateToken] Error al firmar el token JWT",
+			slog.Int("user_id", userID),
+			slog.String("error", err.Error()),
+		)
 		return "", fmt.Errorf("failed to sign token: %w", err)
 	}
 
+	slog.Debug("[JWTAuthService.GenerateToken] Token JWT firmado y generado correctamente",
+		slog.Int("user_id", userID),
+		slog.Time("expires_at", expiresAt),
+	)
 	return signedToken, nil
 }
 
@@ -108,9 +124,12 @@ func (s *JWTAuthService) HashPassword(password string) (string, error) {
 
 // ComparePassword compara una contraseña con su hash
 func (s *JWTAuthService) ComparePassword(hashedPassword, password string) error {
+	slog.Debug("[JWTAuthService.ComparePassword] Comparando contraseña con hash bcrypt")
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 	if err != nil {
+		slog.Warn("[JWTAuthService.ComparePassword] La contraseña no coincide con el hash almacenado")
 		return fmt.Errorf("invalid password")
 	}
+	slog.Debug("[JWTAuthService.ComparePassword] Contraseña válida")
 	return nil
 }
