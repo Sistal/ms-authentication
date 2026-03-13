@@ -40,16 +40,16 @@ type CORSConfig struct {
 
 // Load loads configuration from environment variables
 func Load() *Config {
-	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
+	dbPort, _ := strconv.Atoi(getEnv("DB_PORT", "6543"))
 
 	return &Config{
 		Server: ServerConfig{
 			Port: getEnv("SERVER_PORT", "8081"),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnv("DB_HOST", "db.fbcdvhoectqyofnezwfe.supabase.co"),
+			Host:     getEnv("DB_HOST", "aws-1-sa-east-1.pooler.supabase.com"),
 			Port:     dbPort,
-			User:     getEnv("DB_USER", "postgres"),
+			User:     getEnv("DB_USER", "postgres.fbcdvhoectqyofnezwfe"),
 			Password: getEnv("DB_PASSWORD", "QqODFGGDCAKyD5h6"),
 			DBName:   getEnv("DB_NAME", "postgres"),
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
